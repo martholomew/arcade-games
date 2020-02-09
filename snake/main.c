@@ -27,21 +27,25 @@ struct snake_block
 void renderBlock(SDL_Renderer *rend_ptr,
                  struct snake_block s_blocks_ptr[MAX_BLOCKS], SDL_Rect *block)
 {
+    //set a rect to the coords of the head block
     SDL_Rect s_rect;
     s_rect.x = s_blocks_ptr[0].x_p;
     s_rect.y = s_blocks_ptr[0].y_p;
     s_rect.h = BLOCK_SIZE;
     s_rect.w = BLOCK_SIZE;
+    //if the head block and the block the snake eats intersect
     if (SDL_HasIntersection(block, &s_rect))
     {
+        //change the position of the block that gets eaten
         block->x = (rand() % (windowWidth / BLOCK_SIZE)) * BLOCK_SIZE;
         block->y = (rand() % (windowHeight / BLOCK_SIZE)) * BLOCK_SIZE;
+        //find a block in the snake that is out of bounds
         int i = 0;
         for (i = 0; i < MAX_BLOCKS; i++)
         {
             struct snake_block *block;
             block = &s_blocks_ptr[i];
-
+            //set it to a dum number so it gets caught in renderBlocks and break
             if (block->x_p == -1 && block->y_p == -1)
             {
                 block->x_p = -100;
@@ -50,7 +54,9 @@ void renderBlock(SDL_Renderer *rend_ptr,
             }
         }
     }
+    //set color to white
     SDL_SetRenderDrawColor(rend_ptr, 0xFF, 0xFF, 0xFF, 0xFF);
+    //render the block that gets eaten
     SDL_RenderFillRect(rend_ptr, block);
 }
 
@@ -58,29 +64,32 @@ int renderBlocks(SDL_Renderer *rend_ptr,
                  struct snake_block s_blocks_ptr[MAX_BLOCKS],
                  struct keys *keys_ptr)
 {
+    //make a rectangle to be used for each section upon rendering
     SDL_Rect rect;
-
+    //loop over the blocks starting from the end of the array
     int i = 0;
     for (i = MAX_BLOCKS - 1; i >= 0; i--)
     {
         struct snake_block *block;
         block = &s_blocks_ptr[i];
-
+        //if the block is in bounds
         if (block->x_p == -1 && block->y_p == -1) continue;
-
+        //if the block is not the first and is no long out of bounds, put it at the same position as the next block
         if (i != 0)
         {
             block->x_p = s_blocks_ptr[i - 1].x_p;
             block->y_p = s_blocks_ptr[i - 1].y_p;
         }
+        //these are the things the first block will do
         else
         {
+            //if the block moves out of bounds, reinit
             if (i == 0 && (block->x_p < 0 || block->y_p < 0
                 || block->x_p == windowWidth || block->y_p == windowHeight))
             {
                 return 1;
             }
-
+            //can only turn up and down if sideways
             if (block->x_v)
             {
                 if (keys_ptr->up)
@@ -94,6 +103,7 @@ int renderBlocks(SDL_Renderer *rend_ptr,
                     block->x_v = 0;
                 }
             }
+            //can only turn sideways if up and down
             else if (block->y_v)
             {
                 if (keys_ptr->right)
@@ -107,16 +117,18 @@ int renderBlocks(SDL_Renderer *rend_ptr,
                     block->y_v = 0;
                 }
             }
-
+            //move the head block
             if (block->x_v) block->x_p += BLOCK_SIZE * block->x_v;
             if (block->y_v) block->y_p += BLOCK_SIZE * block->y_v;
         }
-
+        //set rect to bounds of whatever block the loop is on
         rect.x = block->x_p;
         rect.y = block->y_p;
         rect.w = BLOCK_SIZE;
         rect.h = BLOCK_SIZE;
+        //change color to white
         SDL_SetRenderDrawColor(rend_ptr, 0xFF, 0xFF, 0xFF, 0xFF);
+        //render the block
         SDL_RenderFillRect(rend_ptr, &rect);
     }
     return 0;
@@ -188,13 +200,13 @@ int loop(SDL_Renderer *rend_ptr, struct snake_block s_blocks_ptr[MAX_BLOCKS],
         }
         // clear the window
         SDL_RenderClear(rend_ptr);
-
+        //render the snake blocks, if it returns anything but zero, reinit
         if (renderBlocks(rend_ptr, s_blocks_ptr, &keys))
         {
             SDL_SetRenderDrawColor(rend_ptr, 0x00, 0x00, 0x00, 0xFF);
             return 2;
         }
-
+        //render the block the snake eats
         renderBlock(rend_ptr, s_blocks_ptr, block_ptr);
         // Set the color to black
         SDL_SetRenderDrawColor(rend_ptr, 0x00, 0x00, 0x00, 0xFF);
@@ -251,14 +263,17 @@ int main(void)
                 SDL_Quit();
                 return 0;
             case 2:
+                // make the max number of snake blocks
                 for (i = 0; i < MAX_BLOCKS; i++)
                 {
+                    //initialize them at zero
                     s_blocks[i].x_p = 0;
                     s_blocks[i].y_p = 0;
                     s_blocks[i].x_v = 0;
                     s_blocks[i].y_v = 0;
                     if (i == 0)
                     {
+                        //first block starts at a random spot going a random direction
                         int dir;
                         s_blocks[i].x_p = (rand() % (windowWidth / BLOCK_SIZE)) * BLOCK_SIZE;
                         s_blocks[i].y_p = (rand() % (windowHeight / BLOCK_SIZE)) * BLOCK_SIZE;
@@ -270,17 +285,20 @@ int main(void)
                     }
                     else
                     {
+                        // otherwise the block is put out of bounds
                         s_blocks[i].x_p = -1;
                         s_blocks[i].y_p = -1;
                         s_blocks[i].x_v = 0;
                         s_blocks[i].y_v = 0;
                     }
                 }
+                //init the blocks that are eaten by the snake
                 SDL_Rect block;
                 block.x = (rand() % (windowWidth / BLOCK_SIZE)) * BLOCK_SIZE;
                 block.y = (rand() % (windowHeight / BLOCK_SIZE)) * BLOCK_SIZE;
                 block.w = BLOCK_SIZE;
                 block.h = BLOCK_SIZE;
+                //start the main loop
                 event = loop(rend, s_blocks, &block);
                 break;
         }
