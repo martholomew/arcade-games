@@ -68,6 +68,7 @@ int renderBlocks(SDL_Renderer *rend_ptr,
     SDL_Rect rect;
     //loop over the blocks starting from the end of the array
     int i = 0;
+    int j = 0;
     for (i = MAX_BLOCKS - 1; i >= 0; i--)
     {
         struct snake_block *block;
@@ -120,6 +121,15 @@ int renderBlocks(SDL_Renderer *rend_ptr,
             //move the head block
             if (block->x_v) block->x_p += BLOCK_SIZE * block->x_v;
             if (block->y_v) block->y_p += BLOCK_SIZE * block->y_v;
+            // kill if it hits the tail
+            for (j = 1; j < MAX_BLOCKS; j++)
+            {
+                if (block->x_p == s_blocks_ptr[j].x_p
+                    && block->y_p == s_blocks_ptr[j].y_p)
+                {
+                    return 1;
+                }
+            }
         }
         //set rect to bounds of whatever block the loop is on
         rect.x = block->x_p;
