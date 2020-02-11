@@ -5,7 +5,7 @@
 #include <SDL2/SDL_timer.h>
 
 #define windowWidth (800)
-#define windowHeight (800)
+#define windowHeight (600)
 #define BLOCK_SIZE (20)
 #define MAX_BLOCKS (windowWidth * windowHeight) / BLOCK_SIZE
 
@@ -153,7 +153,7 @@ int loop(SDL_Renderer *rend_ptr, struct snake_block s_blocks_ptr[MAX_BLOCKS],
     keys.right = 0;
     keys.up = 0;
     keys.down = 0;
-    // returns: 1 quit, 2 re-initialize...maybe something else later
+    // returns: 0 quit, 1 re-initialize
     while(1)
     {
         SDL_Event event;
@@ -162,7 +162,7 @@ int loop(SDL_Renderer *rend_ptr, struct snake_block s_blocks_ptr[MAX_BLOCKS],
             switch (event.type)
             {
             case SDL_QUIT:
-                return 1;
+                return 0;
                 break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.scancode)
@@ -210,11 +210,11 @@ int loop(SDL_Renderer *rend_ptr, struct snake_block s_blocks_ptr[MAX_BLOCKS],
         }
         // clear the window
         SDL_RenderClear(rend_ptr);
-        //render the snake blocks, if it returns anything but zero, reinit
+        //render the snake blocks, if it returns 1, reinit
         if (renderBlocks(rend_ptr, s_blocks_ptr, &keys))
         {
             SDL_SetRenderDrawColor(rend_ptr, 0x00, 0x00, 0x00, 0xFF);
-            return 2;
+            return 1;
         }
         //render the block the snake eats
         renderBlock(rend_ptr, s_blocks_ptr, block_ptr);
@@ -257,60 +257,53 @@ int main(void)
       return 1;
     }
 
-    // 1 is quit, 2 is init/reinit
-    int event = 2;
-    while (1)
+    int event = 1;
+    while (event)
     {
         int i = 0;
         srand(time(0));
         struct snake_block s_blocks[MAX_BLOCKS];
-        switch (event)
+        // make the max number of snake blocks
+        for (i = 0; i < MAX_BLOCKS; i++)
         {
-            case 1:
-                // clean up resources before exiting
-                SDL_DestroyRenderer(rend);
-                SDL_DestroyWindow(win);
-                SDL_Quit();
-                return 0;
-            case 2:
-                // make the max number of snake blocks
-                for (i = 0; i < MAX_BLOCKS; i++)
-                {
-                    //initialize them at zero
-                    s_blocks[i].x_p = 0;
-                    s_blocks[i].y_p = 0;
-                    s_blocks[i].x_v = 0;
-                    s_blocks[i].y_v = 0;
-                    if (i == 0)
-                    {
-                        //first block starts at a random spot going a random direction
-                        int dir;
-                        s_blocks[i].x_p = (rand() % (windowWidth / BLOCK_SIZE)) * BLOCK_SIZE;
-                        s_blocks[i].y_p = (rand() % (windowHeight / BLOCK_SIZE)) * BLOCK_SIZE;
-                        dir = rand() % 4;
-                        if (dir == 0) s_blocks[i].x_v = 1;
-                        if (dir == 1) s_blocks[i].x_v = -1;
-                        if (dir == 2) s_blocks[i].y_v = 1;
-                        if (dir == 3) s_blocks[i].y_v = -1;
-                    }
-                    else
-                    {
-                        // otherwise the block is put out of bounds
-                        s_blocks[i].x_p = -1;
-                        s_blocks[i].y_p = -1;
-                        s_blocks[i].x_v = 0;
-                        s_blocks[i].y_v = 0;
-                    }
-                }
-                //init the blocks that are eaten by the snake
-                SDL_Rect block;
-                block.x = (rand() % (windowWidth / BLOCK_SIZE)) * BLOCK_SIZE;
-                block.y = (rand() % (windowHeight / BLOCK_SIZE)) * BLOCK_SIZE;
-                block.w = BLOCK_SIZE;
-                block.h = BLOCK_SIZE;
-                //start the main loop
-                event = loop(rend, s_blocks, &block);
-                break;
+            //initialize them at zero
+            s_blocks[i].x_p = 0;
+            s_blocks[i].y_p = 0;
+            s_blocks[i].x_v = 0;
+            s_blocks[i].y_v = 0;
+            if (i == 0)
+            {
+                //first block starts at a random spot going a random direction
+                int dir;
+                s_blocks[i].x_p = (rand() % (windowWidth / BLOCK_SIZE)) * BLOCK_SIZE;
+                s_blocks[i].y_p = (rand() % (windowHeight / BLOCK_SIZE)) * BLOCK_SIZE;
+                dir = rand() % 4;
+                if (dir == 0) s_blocks[i].x_v = 1;
+                if (dir == 1) s_blocks[i].x_v = -1;
+                if (dir == 2) s_blocks[i].y_v = 1;
+                if (dir == 3) s_blocks[i].y_v = -1;
+            }
+            else
+            {
+                // otherwise the block is put out of bounds
+                s_blocks[i].x_p = -1;
+                s_blocks[i].y_p = -1;
+                s_blocks[i].x_v = 0;
+                s_blocks[i].y_v = 0;
+            }
         }
+        //init the blocks that are eaten by the snake
+        SDL_Rect block;
+        block.x = (rand() % (windowWidth / BLOCK_SIZE)) * BLOCK_SIZE;
+        block.y = (rand() % (windowHeight / BLOCK_SIZE)) * BLOCK_SIZE;
+        block.w = BLOCK_SIZE;
+        block.h = BLOCK_SIZE;
+        //start the main loop
+        event = loop(rend, s_blocks, &block);
     }
+    // clean up resources before exiting
+    SDL_DestroyRenderer(rend);
+    SDL_DestroyWindow(win);
+    SDL_Quit();
+    return 0;
 }
