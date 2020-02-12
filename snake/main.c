@@ -2,12 +2,15 @@
 #include <stdlib.h>
 #include <time.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_timer.h>
 
 #define windowWidth (800)
-#define windowHeight (600)
+#define windowHeight (620)
+#define WIDTH (windowWidth)
+#define HEIGHT (windowHeight - 20)
 #define BLOCK_SIZE (20)
-#define MAX_BLOCKS (windowWidth * windowHeight) / BLOCK_SIZE
+#define MAX_BLOCKS (WIDTH * HEIGHT) / BLOCK_SIZE
 
 struct keys
 {
@@ -37,8 +40,8 @@ void renderBlock(SDL_Renderer *rend_ptr,
     if (SDL_HasIntersection(block, &s_rect))
     {
         //change the position of the block that gets eaten
-        block->x = (rand() % (windowWidth / BLOCK_SIZE)) * BLOCK_SIZE;
-        block->y = (rand() % (windowHeight / BLOCK_SIZE)) * BLOCK_SIZE;
+        block->x = (rand() % (WIDTH / BLOCK_SIZE)) * BLOCK_SIZE;
+        block->y = (rand() % (HEIGHT / BLOCK_SIZE)) * BLOCK_SIZE;
         //find a block in the snake that is out of bounds
         int i = 0;
         for (i = 0; i < MAX_BLOCKS; i++)
@@ -66,6 +69,20 @@ int renderBlocks(SDL_Renderer *rend_ptr,
 {
     //make a rectangle to be used for each section upon rendering
     SDL_Rect rect;
+    //make a rectangle for the text background
+    SDL_Rect txt_bck_rect;
+    txt_bck_rect.w = WIDTH;
+    txt_bck_rect.h = windowHeight - HEIGHT;
+    txt_bck_rect.x = 0;
+    txt_bck_rect.y = HEIGHT;
+    //make a rectangle for the text
+    SDL_Rect txt_rect;
+    txt_rect.w = 0;
+    txt_rect.h = 0;
+    txt_rect.x = 0;
+    txt_rect.y = HEIGHT;
+
+    int points = 0;
     //loop over the blocks starting from the end of the array
     int i = 0;
     int j = 0;
@@ -76,8 +93,12 @@ int renderBlocks(SDL_Renderer *rend_ptr,
         //if the block is in bounds
         if (block->x_p == -1 && block->y_p == -1) continue;
         //if the block is not the first and is no long out of bounds, put it at the same position as the next block
+
         if (i != 0)
         {
+            // add 20 points per snake section
+            points += 20;
+            // make block coords equal to block in front of it
             block->x_p = s_blocks_ptr[i - 1].x_p;
             block->y_p = s_blocks_ptr[i - 1].y_p;
         }
@@ -86,7 +107,7 @@ int renderBlocks(SDL_Renderer *rend_ptr,
         {
             //if the block moves out of bounds, reinit
             if (i == 0 && (block->x_p < 0 || block->y_p < 0
-                || block->x_p == windowWidth || block->y_p == windowHeight))
+                || block->x_p == WIDTH || block->y_p == HEIGHT))
             {
                 return 1;
             }
@@ -131,6 +152,35 @@ int renderBlocks(SDL_Renderer *rend_ptr,
                 }
             }
         }
+        //Printing the score on the bottom
+        SDL_Color txt_color = {0, 0, 0, 0};
+        TTF_Font* font = TTF_OpenFont("modeseven.ttf", 24);
+        if(!font) {
+            printf("TTF_OpenFont: %s\n", TTF_GetError());
+            return 0;
+        }
+        //6 for "score ", the rest is the max length of the snake
+        const int bufsize = 20;
+        char txt[bufsize];
+        snprintf(txt, bufsize - 1, "Score %d", points);
+        SDL_Surface *txt_surface = TTF_RenderText_Solid(font, txt, txt_color);
+        txt_rect.w = txt_surface->w;
+        txt_rect.h = txt_surface->h;
+        txt_rect.x = (WIDTH / 2) - (txt_rect.w / 2);
+
+        //create tex from surface then kill surface and close the font
+        SDL_Texture *txt_tex = SDL_CreateTextureFromSurface(rend_ptr, txt_surface);
+        SDL_FreeSurface(txt_surface);
+        TTF_CloseFont(font);
+
+        SDL_SetRenderDrawColor(rend_ptr, 0xFF, 0xFF, 0xFF, 0xFF);
+        SDL_RenderFillRect(rend_ptr, &txt_bck_rect);
+        SDL_SetRenderDrawColor(rend_ptr, 0x00, 0x00, 0x00, 0xFF);
+        SDL_RenderCopy(rend_ptr, txt_tex, NULL, &txt_rect);
+
+        // Get rid of texture
+        SDL_DestroyTexture(txt_tex);
+
         //set rect to bounds of whatever block the loop is on
         rect.x = block->x_p;
         rect.y = block->y_p;
@@ -235,6 +285,12 @@ int main(void)
         return 1;
     }
 
+    if (TTF_Init() != 0)
+    {
+        printf("error initializing TTF: %s\n", TTF_GetError());
+        return 1;
+    }
+
     SDL_Window* win = SDL_CreateWindow("TopSnek: My BFF",
                                        SDL_WINDOWPOS_CENTERED,
                                        SDL_WINDOWPOS_CENTERED,
@@ -256,7 +312,6 @@ int main(void)
       SDL_Quit();
       return 1;
     }
-
     int event = 1;
     while (event)
     {
@@ -275,8 +330,8 @@ int main(void)
             {
                 //first block starts at a random spot going a random direction
                 int dir;
-                s_blocks[i].x_p = (rand() % (windowWidth / BLOCK_SIZE)) * BLOCK_SIZE;
-                s_blocks[i].y_p = (rand() % (windowHeight / BLOCK_SIZE)) * BLOCK_SIZE;
+                s_blocks[i].x_p = (rand() % (WIDTH / BLOCK_SIZE)) * BLOCK_SIZE;
+                s_blocks[i].y_p = (rand() % (HEIGHT / BLOCK_SIZE)) * BLOCK_SIZE;
                 dir = rand() % 4;
                 if (dir == 0) s_blocks[i].x_v = 1;
                 if (dir == 1) s_blocks[i].x_v = -1;
@@ -294,8 +349,8 @@ int main(void)
         }
         //init the blocks that are eaten by the snake
         SDL_Rect block;
-        block.x = (rand() % (windowWidth / BLOCK_SIZE)) * BLOCK_SIZE;
-        block.y = (rand() % (windowHeight / BLOCK_SIZE)) * BLOCK_SIZE;
+        block.x = (rand() % (WIDTH / BLOCK_SIZE)) * BLOCK_SIZE;
+        block.y = (rand() % (HEIGHT / BLOCK_SIZE)) * BLOCK_SIZE;
         block.w = BLOCK_SIZE;
         block.h = BLOCK_SIZE;
         //start the main loop
